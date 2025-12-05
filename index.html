@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green API Тест</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .left-column {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .right-column {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #1e7e34;
+        }
+        
+        .response-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 3px;
+            padding: 15px;
+            height: calc(100% - 40px);
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .status {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 20px 0;
+        }
+        
+        .hidden-field {
+            display: none;
+        }
+        
+        .phone-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .loading {
+            display: none;
+            color: #007bff;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .enter-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Левый столбец -->
+        <div class="left-column">
+            <div class="section">
+                <div class="section-title">Подключение к Green API</div>
+                
+                <div class="input-group">
+                    <label for="idInstance">ID Instance:</label>
+                    <input type="text" id="idInstance" placeholder="Введите ID инстанса">
+                </div>
+                
+                <div class="input-group">
+                    <label for="apiToken">API Token Instance:</label>
+                    <input type="text" id="apiToken" placeholder="Введите API токен">
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="callApi('getSettings')">getSettings</button>
+                    <button class="btn-primary" onclick="callApi('getStateInstance')">getStateInstance</button>
+                </div>
+                
+                <div class="loading" id="loading">Загрузка...</div>
+                
+                <div id="connectionStatus" class="status">
+                    Введите данные и проверьте подключение
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section">
+                <div class="section-title">Отправка сообщения</div>
+                
+                <div class="input-group">
+                    <label for="messagePhone">Номер телефона:</label>
+                    <input type="text" id="messagePhone" placeholder="77021234567">
+                </div>
+                
+                <div class="input-group">
+                    <label for="messageText">Текст сообщения:</label>
+                    <textarea id="messageText" placeholder="Введите текст сообщения"></textarea>
+                    <div class="enter-hint">Нажмите Enter для отправки</div>
+                </div>
+                
+                <button class="btn-success" onclick="sendMessage()">sendMessage</button>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="section">
+                <div class="section-title">Отправка файла</div>
+                
+                <div class="input-group">
+                    <label for="filePhone">Номер телефона:</label>
+                    <input type="text" id="filePhone" placeholder="77021234567">
+                </div>
+                
+                <div class="input-group">
+                    <label for="fileUrl">Ссылка на файл:</label>
+                    <input type="text" id="fileUrl" placeholder="https://example.com/file.jpg" onchange="extractFileName()">
+                    <div class="enter-hint">Нажмите Enter для отправки</div>
+                </div>
+                
+                <div class="input-group hidden-field">
+                    <label for="fileName">Имя файла:</label>
+                    <input type="text" id="fileName">
+                </div>
+                
+                <button class="btn-success" onclick="sendFileByUrl()">sendFileByUrl</button>
+            </div>
+        </div>
+        
+        <!-- Правый столбец -->
+        <div class="right-column">
+            <div class="section">
+                <div class="section-title">Ответ API</div>
+                <div class="response-box" id="response">
+{
+  "status": "ожидание",
+  "message": "Выполните запрос к API"
+}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API URL
+        const API_URL = 'https://7105.api.green-api.com';
+        
+        // Извлечение имени файла из URL
+        function extractFileName() {
+            const url = document.getElementById('fileUrl').value;
+            if (url) {
+                const fileName = url.split('/').pop().split('?')[0];
+                document.getElementById('fileName').value = fileName || '';
+            }
+        }
+        
+        // Форматирование номера телефона
+        function formatPhoneNumber(phone) {
+            phone = phone.trim();
+            phone = phone.replace('@c.us', '');
+            phone = phone.replace(/[^\d+]/g, '');
+            return phone + '@c.us';
+        }
+        
+        // Показать/скрыть загрузку
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+        
+        // Проверка валидности данных
+        function validateCredentials() {
+            const idInstance = document.getElementById('idInstance').value.trim();
+            const apiToken = document.getElementById('apiToken').value.trim();
+            
+            if (!idInstance || !apiToken) {
+                showResponse('Ошибка: Введите ID Instance и API Token');
+                return false;
+            }
+            
+            return { idInstance, apiToken };
+        }
+        
+        // Получить URL для API запроса
+        function getApiUrl(idInstance, apiToken, method) {
+            return `${API_URL}/waInstance${idInstance}/${method}/${apiToken}`;
+        }
+        
+        // Общий вызов API для getSettings и getStateInstance
+        async function callApi(method) {
+            const credentials = validateCredentials();
+            if (!credentials) return;
+            
+            const { idInstance, apiToken } = credentials;
+            
+            showLoading(true);
+            showResponse(`Отправка запроса ${method}...`);
+            
+            try {
+                const url = getApiUrl(idInstance, apiToken, method);
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ошибка: ${response.status}`);
+                }
+                
+                const text = await response.text();
+                
+                let data;
+                if (text) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        data = { rawText: text };
+                    }
+                } else {
+                    data = { emptyResponse: true };
+                }
+                
+                document.getElementById('connectionStatus').className = 'status status-success';
+                document.getElementById('connectionStatus').textContent = 
+                    method === 'getStateInstance' && data.stateInstance 
+                        ? `Подключено. Статус: ${data.stateInstance}`
+                        : 'Запрос выполнен успешно';
+                
+                showResponse({
+                    method: method,
+                    success: true,
+                    status: response.status,
+                    data: data
+                });
+                
+            } catch (error) {
+                document.getElementById('connectionStatus').className = 'status status-error';
+                document.getElementById('connectionStatus').textContent = 'Ошибка запроса';
+                
+                showResponse({
+                    method: method,
+                    success: false,
+                    error: error.message
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Отправка сообщения
+        async function sendMessage() {
+            const credentials = validateCredentials();
+            if (!credentials) return;
+            
+            const { idInstance, apiToken } = credentials;
+            const phone = document.getElementById('messagePhone').value.trim();
+            const messageText = document.getElementById('messageText').value.trim();
+            
+            if (!phone || !messageText) {
+                showResponse('Ошибка: Заполните номер телефона и текст сообщения');
+                return;
+            }
+            
+            const chatId = formatPhoneNumber(phone);
+            
+            showLoading(true);
+            showResponse(`Отправка сообщения на ${chatId}...`);
+            
+            try {
+                const url = getApiUrl(idInstance, apiToken, 'sendMessage');
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chatId: chatId,
+                        message: messageText
+                    })
+                });
+                
+                const text = await response.text();
+                
+                let data;
+                if (text) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        data = { rawText: text };
+                    }
+                } else {
+                    data = { emptyResponse: true };
+                }
+                
+                if (response.ok) {
+                    showResponse({
+                        method: 'sendMessage',
+                        success: true,
+                        status: response.status,
+                        data: data,
+                        message: 'Сообщение отправлено'
+                    });
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${text || 'Нет ответа'}`);
+                }
+            } catch (error) {
+                showResponse({
+                    method: 'sendMessage',
+                    success: false,
+                    error: error.message
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Отправка файла по URL
+        async function sendFileByUrl() {
+            const credentials = validateCredentials();
+            if (!credentials) return;
+            
+            const { idInstance, apiToken } = credentials;
+            const phone = document.getElementById('filePhone').value.trim();
+            const fileUrl = document.getElementById('fileUrl').value.trim();
+            const fileName = document.getElementById('fileName').value.trim();
+            
+            if (!phone || !fileUrl) {
+                showResponse('Ошибка: Заполните номер телефона и ссылку на файл');
+                return;
+            }
+            
+            const chatId = formatPhoneNumber(phone);
+            
+            showLoading(true);
+            showResponse(`Отправка файла на ${chatId}...`);
+            
+            try {
+                const url = getApiUrl(idInstance, apiToken, 'sendFileByUrl');
+                
+                const requestBody = {
+                    chatId: chatId,
+                    urlFile: fileUrl
+                };
+                
+                if (fileName && fileName.trim() !== '') {
+                    requestBody.fileName = fileName;
+                }
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const text = await response.text();
+                
+                let data;
+                if (text) {
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        data = { rawText: text };
+                    }
+                } else {
+                    data = { emptyResponse: true };
+                }
+                
+                if (response.ok) {
+                    showResponse({
+                        method: 'sendFileByUrl',
+                        success: true,
+                        status: response.status,
+                        data: data,
+                        message: 'Запрос на отправку файла выполнен'
+                    });
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${text || 'Нет ответа'}`);
+                }
+                
+            } catch (error) {
+                showResponse({
+                    method: 'sendFileByUrl',
+                    success: false,
+                    error: error.message
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Показать ответ
+        function showResponse(data) {
+            const responseBox = document.getElementById('response');
+            
+            if (typeof data === 'string') {
+                responseBox.textContent = data;
+            } else {
+                responseBox.textContent = JSON.stringify(data, null, 2);
+            }
+        }
+        
+        // Обработка нажатия Enter - ПРОСТОЙ ВАРИАНТ
+        function setupEnterHandlers() {
+            // В поле текста сообщения: Enter отправляет сообщение
+            document.getElementById('messageText').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // В поле URL файла: Enter отправляет файл
+            document.getElementById('fileUrl').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    sendFileByUrl();
+                }
+            });
+            
+            // В полях номеров телефона: Enter тоже отправляет
+            document.getElementById('messagePhone').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            document.getElementById('filePhone').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    sendFileByUrl();
+                }
+            });
+            
+            // В полях ID и Token: Enter проверяет подключение
+            document.getElementById('idInstance').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    callApi('getStateInstance');
+                }
+            });
+            
+            document.getElementById('apiToken').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    callApi('getStateInstance');
+                }
+            });
+        }
+        
+        // При загрузке страницы
+        window.onload = function() {
+            const savedId = localStorage.getItem('idInstance');
+            const savedToken = localStorage.getItem('apiToken');
+            
+            if (savedId) {
+                document.getElementById('idInstance').value = savedId;
+            }
+            if (savedToken) {
+                document.getElementById('apiToken').value = savedToken;
+            }
+            
+            // Настраиваем обработчики Enter
+            setupEnterHandlers();
+        }
+        
+        // Сохраняем данные
+        document.getElementById('idInstance').addEventListener('change', function() {
+            localStorage.setItem('idInstance', this.value);
+        });
+        
+        document.getElementById('apiToken').addEventListener('change', function() {
+            localStorage.setItem('apiToken', this.value);
+        });
+    </script>
+</body>
+</html>

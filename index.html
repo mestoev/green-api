@@ -132,6 +132,12 @@
             border: 1px solid #f5c6cb;
         }
         
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
         .divider {
             height: 1px;
             background-color: #eee;
@@ -160,6 +166,26 @@
             color: #666;
             margin-top: 3px;
             font-style: italic;
+        }
+        
+        .auth-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .auth-indicator.authorized {
+            background-color: #28a745;
+        }
+        
+        .auth-indicator.not-authorized {
+            background-color: #dc3545;
+        }
+        
+        .auth-indicator.unknown {
+            background-color: #ffc107;
         }
     </style>
 </head>
@@ -254,6 +280,9 @@
         // API URL
         const API_URL = 'https://7105.api.green-api.com';
         
+        // Глобальная переменная для хранения статуса авторизации
+        let isAuthorized = false;
+        
         // Извлечение имени файла из URL
         function extractFileName() {
             const url = document.getElementById('fileUrl').value;
@@ -294,6 +323,18 @@
             return `${API_URL}/waInstance${idInstance}/${method}/${apiToken}`;
         }
         
+        // Функция проверки авторизации перед отправкой
+        function checkAuthorization() {
+            if (!isAuthorized) {
+                showResponse({
+                    error: 'Ошибка авторизации',
+                    message: 'Необходимо авторизоваться с устройства для отправки сообщений/файлов. Проверьте статус инстанса с помощью кнопки "Получить статус инстанса". Если статус "notAuthorized", отсканируйте QR-код в личном кабинете Green API.'
+                });
+                return false;
+            }
+            return true;
+        }
+        
         // Общий вызов API для getSettings и getStateInstance
         async function callApi(method) {
             const credentials = validateCredentials();
@@ -325,11 +366,29 @@
                     data = { emptyResponse: true };
                 }
                 
-                document.getElementById('connectionStatus').className = 'status status-success';
-                document.getElementById('connectionStatus').textContent = 
-                    method === 'getStateInstance' && data.stateInstance 
-                        ? `Подключено. Статус: ${data.stateInstance}`
-                        : 'Запрос выполнен успешно';
+                // Обработка статуса авторизации для getStateInstance
+                if (method === 'getStateInstance') {
+                    if (data.stateInstance === 'notAuthorized') {
+                        isAuthorized = false;
+                        document.getElementById('connectionStatus').className = 'status status-error';
+                        document.getElementById('connectionStatus').innerHTML = 
+                            '<span class="auth-indicator not-authorized"></span> Не авторизовано. Сканируйте QR-код в личном кабинете Green API';
+                    } else if (data.stateInstance === 'authorized') {
+                        isAuthorized = true;
+                        document.getElementById('connectionStatus').className = 'status status-success';
+                        document.getElementById('connectionStatus').innerHTML = 
+                            '<span class="auth-indicator authorized"></span> Авторизовано. Статус: ' + data.stateInstance;
+                    } else {
+                        isAuthorized = false;
+                        document.getElementById('connectionStatus').className = 'status status-warning';
+                        document.getElementById('connectionStatus').innerHTML = 
+                            '<span class="auth-indicator unknown"></span> Статус: ' + (data.stateInstance || 'неизвестен');
+                    }
+                } else {
+                    // Для других методов просто показываем успех
+                    document.getElementById('connectionStatus').className = 'status status-success';
+                    document.getElementById('connectionStatus').textContent = 'Запрос выполнен успешно';
+                }
                 
                 showResponse({
                     method: method,
@@ -347,6 +406,10 @@
                     success: false,
                     error: error.message
                 });
+                
+                if (method === 'getStateInstance') {
+                    isAuthorized = false;
+                }
             } finally {
                 showLoading(false);
             }
@@ -354,6 +417,9 @@
         
         // Отправка сообщения
         async function sendMessage() {
+            // Проверяем авторизацию
+            if (!checkAuthorization()) return;
+            
             const credentials = validateCredentials();
             if (!credentials) return;
             
@@ -406,7 +472,18 @@
                         message: 'Сообщение отправлено'
                     });
                 } else {
-                    throw new Error(`HTTP ${response.status}: ${text || 'Нет ответа'}`);
+                    // Если получили ошибку 401 или другую связанную с авторизацией
+                    if (response.status === 401) {
+                        isAuthorized = false;
+                        showResponse({
+                            method: 'sendMessage',
+                            success: false,
+                            error: 'Ошибка авторизации',
+                            message: 'Сессия устарела. Проверьте статус инстанса и отсканируйте QR-код при необходимости.'
+                        });
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${text || 'Нет ответа'}`);
+                    }
                 }
             } catch (error) {
                 showResponse({
@@ -421,6 +498,9 @@
         
         // Отправка файла по URL
         async function sendFileByUrl() {
+            // Проверяем авторизацию
+            if (!checkAuthorization()) return;
+            
             const credentials = validateCredentials();
             if (!credentials) return;
             
@@ -481,7 +561,18 @@
                         message: 'Запрос на отправку файла выполнен'
                     });
                 } else {
-                    throw new Error(`HTTP ${response.status}: ${text || 'Нет ответа'}`);
+                    // Если получили ошибку 401 или другую связанную с авторизацией
+                    if (response.status === 401) {
+                        isAuthorized = false;
+                        showResponse({
+                            method: 'sendFileByUrl',
+                            success: false,
+                            error: 'Ошибка авторизации',
+                            message: 'Сессия устарела. Проверьте статус инстанса и отсканируйте QR-код при необходимости.'
+                        });
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${text || 'Нет ответа'}`);
+                    }
                 }
                 
             } catch (error) {
@@ -569,6 +660,14 @@
             
             // Настраиваем обработчики Enter
             setupEnterHandlers();
+            
+            // Автоматически проверяем статус при наличии сохраненных данных
+            if (savedId && savedToken) {
+                // Показываем информацию о необходимости проверки статуса
+                document.getElementById('connectionStatus').className = 'status';
+                document.getElementById('connectionStatus').textContent = 
+                    'Данные загружены. Нажмите "Получить статус инстанса" для проверки авторизации.';
+            }
         }
         
         // Сохраняем данные
